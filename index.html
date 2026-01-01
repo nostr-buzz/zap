@@ -75,9 +75,9 @@
     }
 
     .brand-logo {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 68px;
+      height: 68px;
+      border-radius: 16px;
       object-fit: contain;
       background: transparent;
       border: none;
@@ -165,6 +165,46 @@
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+    }
+
+    .theme-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(2, 6, 23, 0.02);
+      color: var(--muted);
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .theme-controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-select {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--text);
+      padding: 6px 26px 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23020%20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 16px;
+    }
+
+    .theme-select:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(2, 6, 23, 0.12);
     }
 
     .btn {
@@ -329,8 +369,7 @@
   <div class="container">
     <div class="topbar">
       <div class="brand" aria-label="nostr-zap">
-        <img class="brand-logo" src="./assets/logo.png" width="48" height="48" alt="nostr-zap" />
-        <span>nostr-zap</span>
+        <img class="brand-logo" src="./assets/logo.png" width="68" height="68" alt="nostr-zap" />
       </div>
       <nav class="nav">
         <a href="./docs.html">Docs</a>
@@ -362,6 +401,15 @@
           View demo zaps
         </button>
         <a class="pill" href="./docs.html">Read the docs</a>
+        <span class="theme-controls" data-theme-row>
+          <label>
+            Dialog theme
+            <select class="theme-select" data-theme-select>
+              <option value="light" selected>Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+        </span>
       </div>
     </header>
 
@@ -380,6 +428,15 @@
             data-relay-urls="wss://relay.nostr.band,wss://relay.damus.io,wss://nos.lol,wss://nostr.bitcoiner.social,wss://relay.nostr.wirednet.jp,wss://yabu.me">
             View
           </button>
+          <span class="theme-controls" data-theme-row>
+            <label>
+              Dialog theme
+              <select class="theme-select" data-theme-select>
+                <option value="light" selected>Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+          </span>
         </div>
       </section>
 
@@ -397,6 +454,15 @@
             data-relay-urls="wss://relay.nostr.band,wss://relay.damus.io,wss://nos.lol,wss://nostr.bitcoiner.social,wss://relay.nostr.wirednet.jp,wss://yabu.me">
             View
           </button>
+          <span class="theme-controls" data-theme-row>
+            <label>
+              Dialog theme
+              <select class="theme-select" data-theme-select>
+                <option value="light" selected>Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+          </span>
         </div>
       </section>
 
@@ -458,6 +524,15 @@
             </svg>
             View Sponsors
           </button>
+          <span class="theme-controls" data-theme-row>
+            <label>
+              Dialog theme
+              <select class="theme-select" data-theme-select>
+                <option value="light" selected>Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+          </span>
         </div>
       </section>
     </main>
@@ -497,6 +572,24 @@
           // ignore clipboard failures
         }
       });
+    });
+
+    // Theme helpers: sets data-theme on buttons next to each theme selector.
+    const applyThemeForRow = (selectEl) => {
+      const value = (selectEl.value || "").toLowerCase();
+      const row = selectEl.closest(".row") || selectEl.closest("[data-theme-row]")?.parentElement;
+      const scope = row || document;
+
+      scope.querySelectorAll("button[data-npub], button[data-nzv-id]").forEach((btn) => {
+        // Only touch buttons that are visually in the same row container.
+        if (row && !row.contains(btn)) return;
+        btn.setAttribute("data-theme", value === "dark" ? "dark" : "light");
+      });
+    };
+
+    document.querySelectorAll("[data-theme-select]").forEach((selectEl) => {
+      applyThemeForRow(selectEl);
+      selectEl.addEventListener("change", () => applyThemeForRow(selectEl));
     });
   </script>
 </body>

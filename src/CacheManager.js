@@ -376,6 +376,7 @@ export class CacheManager {
   static #instance = null;
   #relayUrls = null;
   #caches = {};
+  #themeStates = new Map();
 
   constructor() {
     if (CacheManager.#instance) {
@@ -408,6 +409,7 @@ export class CacheManager {
 
     this.viewStats = new Map();
     this.viewStates = new Map();
+    this.#themeStates = new Map();
 
     CacheManager.#instance = this;
   }
@@ -555,6 +557,22 @@ export class CacheManager {
   setRelayUrls(urls) { this.#relayUrls = urls; }
   getRelayUrls() { return this.#relayUrls; }
 
+  // Theme state (used by UIManager)
+  getThemeState(viewId) {
+    if (!viewId) return { theme: APP_CONFIG.DEFAULT_OPTIONS.theme, isInitialized: true };
+    if (!this.#themeStates.has(viewId)) {
+      this.#themeStates.set(viewId, { theme: APP_CONFIG.DEFAULT_OPTIONS.theme, isInitialized: true });
+    }
+    return this.#themeStates.get(viewId);
+  }
+
+  updateThemeState(viewId, updates) {
+    const current = this.getThemeState(viewId);
+    const next = { ...current, ...updates, isInitialized: true };
+    this.#themeStates.set(viewId, next);
+    return next;
+  }
+
   // Cleanup
   clearAll() {
     this.profileCache.clear();
@@ -573,6 +591,7 @@ export class CacheManager {
     Object.values(this.#caches).forEach(cache => cache.clear());
     this.viewStats.clear();
     this.viewStates.clear();
+    this.#themeStates.clear();
   }
 
   // ...existing code for other methods...

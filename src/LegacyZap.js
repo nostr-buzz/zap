@@ -233,6 +233,7 @@ export const listenForZapReceipt = ({ relays, invoice, onSuccess }) => {
 // ---------------------------------------------------------------------------
 
 let shadow = null;
+let legacyHost = null;
 
 const hexToRgb = (hex) => {
   hex = hex.replace(/^#/, "");
@@ -697,6 +698,21 @@ export const initTarget = (targetEl) => {
   let cachedParams = null;
 
   targetEl.addEventListener("click", async function () {
+    // Apply theme (data-theme="light"|"dark" on the zap button). Defaults to system.
+    try {
+      const explicit = (targetEl.getAttribute("data-theme") || "").toLowerCase();
+      const system = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ? "dark"
+        : "light";
+      const theme = (explicit === "light" || explicit === "dark") ? explicit : system;
+      if (legacyHost) {
+        legacyHost.classList.remove("theme-light", "theme-dark");
+        legacyHost.classList.add(theme === "dark" ? "theme-dark" : "theme-light");
+      }
+    } catch {
+      // ignore theme errors
+    }
+
     const npub = targetEl.getAttribute("data-npub");
     const noteId = targetEl.getAttribute("data-note-id");
     const naddr = targetEl.getAttribute("data-naddr");
@@ -742,6 +758,60 @@ export const injectCSS = () => {
   const styleElement = document.createElement("style");
 
   styleElement.innerHTML = `
+      :host {
+        --nz-dialog-bg: #ffffff;
+        --nz-text: #000000;
+        --nz-muted: rgba(0, 0, 0, 0.7);
+        --nz-border: rgb(226, 232, 240);
+        --nz-hover: #edf2f7;
+        --nz-input-bg: #f7fafc;
+        --nz-backdrop: rgba(0, 0, 0, 0.35);
+        --nz-surface: rgba(255, 255, 255, 0.85);
+        --nz-surface-strong: rgba(255, 255, 255, 0.95);
+        --nz-skeleton-bg: #e8e8e8;
+        --nz-icon-stroke: #555;
+        --nz-focus-ring: rgba(0, 0, 0, 0.12);
+        --nz-success-title: #111;
+        --nz-success-sub: #555;
+      }
+
+      :host(.theme-dark) {
+        --nz-dialog-bg: #0b0f14;
+        --nz-text: #f3f4f6;
+        --nz-muted: rgba(243, 244, 246, 0.72);
+        --nz-border: rgba(255, 255, 255, 0.12);
+        --nz-hover: rgba(255, 255, 255, 0.06);
+        --nz-input-bg: rgba(255, 255, 255, 0.06);
+        --nz-backdrop: rgba(0, 0, 0, 0.55);
+        --nz-surface: rgba(17, 24, 39, 0.78);
+        --nz-surface-strong: rgba(17, 24, 39, 0.92);
+        --nz-skeleton-bg: rgba(255, 255, 255, 0.08);
+        --nz-icon-stroke: rgba(243, 244, 246, 0.82);
+        --nz-focus-ring: rgba(255, 255, 255, 0.18);
+        --nz-success-title: #f3f4f6;
+        --nz-success-sub: rgba(243, 244, 246, 0.72);
+      }
+
+      /* Default to system preference unless explicitly forced to light */
+      @media (prefers-color-scheme: dark) {
+        :host:not(.theme-light) {
+          --nz-dialog-bg: #0b0f14;
+          --nz-text: #f3f4f6;
+          --nz-muted: rgba(243, 244, 246, 0.72);
+          --nz-border: rgba(255, 255, 255, 0.12);
+          --nz-hover: rgba(255, 255, 255, 0.06);
+          --nz-input-bg: rgba(255, 255, 255, 0.06);
+          --nz-backdrop: rgba(0, 0, 0, 0.55);
+          --nz-surface: rgba(17, 24, 39, 0.78);
+          --nz-surface-strong: rgba(17, 24, 39, 0.92);
+          --nz-skeleton-bg: rgba(255, 255, 255, 0.08);
+          --nz-icon-stroke: rgba(243, 244, 246, 0.82);
+          --nz-focus-ring: rgba(255, 255, 255, 0.18);
+          --nz-success-title: #f3f4f6;
+          --nz-success-sub: rgba(243, 244, 246, 0.72);
+        }
+      }
+
       .nostr-zap-dialog {
         width: 360px;
         max-width: calc(100vw - 24px);
@@ -753,13 +823,14 @@ export const injectCSS = () => {
         text-align: center;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-        background-color: white;
+        background-color: var(--nz-dialog-bg);
+        color: var(--nz-text);
         position: relative;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
       }
 
       .nostr-zap-dialog::backdrop {
-        background: rgba(0, 0, 0, 0.35);
+        background: var(--nz-backdrop);
         backdrop-filter: blur(2px);
       }
       .nostr-zap-dialog[open],
@@ -778,12 +849,12 @@ export const injectCSS = () => {
       .nostr-zap-dialog h2 {
         font-size: 1.5em;
         font-weight: bold;
-        color: black;
+        color: var(--nz-text);
       }
       .nostr-zap-dialog p {
         font-size: 1em;
         font-weight: normal;
-        color: black;
+        color: var(--nz-muted);
       }
       .nostr-zap-dialog h2,
       .nostr-zap-dialog p,
@@ -798,16 +869,16 @@ export const injectCSS = () => {
         border: none;
         font-size: 16px;
         cursor: pointer;
-        border: 1px solid rgb(226, 232, 240);
+        border: 1px solid var(--nz-border);
         width: 100px;
         max-width: 100px;
         max-height: 52px;
         white-space: nowrap;
-        color: black;
+        color: var(--nz-text);
         box-sizing: border-box;
       }
       .nostr-zap-dialog button:hover {
-        background-color: #edf2f7;
+        background-color: var(--nz-hover);
       }
       .nostr-zap-dialog button:disabled {
         opacity: 0.5;
@@ -842,7 +913,7 @@ export const injectCSS = () => {
       }
 
       .nostr-zap-dialog .cancel-button {
-        background: rgba(255, 255, 255, 0.85);
+        background: var(--nz-surface);
       }
 
       @media only screen and (max-width: 360px) {
@@ -856,9 +927,9 @@ export const injectCSS = () => {
         right: 6px;
         width: 36px;
         height: 36px;
-        border: 1px solid rgb(226, 232, 240);
+        border: 1px solid var(--nz-border);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.85);
+        background: var(--nz-surface);
         padding: 0;
         display: inline-flex;
         align-items: center;
@@ -868,7 +939,7 @@ export const injectCSS = () => {
       }
 
       .nostr-zap-dialog .close-button:hover {
-        background-color: #edf2f7;
+        background-color: var(--nz-hover);
       }
 
       .nostr-zap-dialog .close-button:active {
@@ -877,7 +948,7 @@ export const injectCSS = () => {
 
       .nostr-zap-dialog .close-button:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 0 0 3px var(--nz-focus-ring);
       }
 
       .nostr-zap-dialog .close-button .close-icon {
@@ -886,7 +957,7 @@ export const injectCSS = () => {
       }
 
       .nostr-zap-dialog .close-button .close-icon path {
-        stroke: #555;
+        stroke: var(--nz-icon-stroke);
         stroke-width: 2.25;
         stroke-linecap: round;
       }
@@ -917,12 +988,12 @@ export const injectCSS = () => {
         font-size: 16px;
         width: 100%;
         max-width: 100%;
-        background-color: #f7fafc;
-        color: #1a202c;
+        background-color: var(--nz-input-bg);
+        color: var(--nz-text);
         box-shadow: none;
         box-sizing: border-box;
         margin-bottom: 16px;
-        border: 1px solid lightgray;
+        border: 1px solid var(--nz-border);
       }
       .nostr-zap-dialog .spinner {
         display: flex;
@@ -975,7 +1046,7 @@ export const injectCSS = () => {
         align-items: center;
         justify-content: center;
         padding: 18px;
-        background: rgba(255, 255, 255, 0.72);
+        background: var(--nz-surface);
         backdrop-filter: blur(4px);
         opacity: 0;
         transform: scale(0.98);
@@ -990,9 +1061,9 @@ export const injectCSS = () => {
       .nostr-zap-dialog .success-card {
         width: 100%;
         max-width: 320px;
-        border: 1px solid rgb(226, 232, 240);
+        border: 1px solid var(--nz-border);
         border-radius: 14px;
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--nz-surface-strong);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
         padding: 18px 16px;
         display: flex;
@@ -1031,12 +1102,12 @@ export const injectCSS = () => {
       .nostr-zap-dialog .success-title {
         font-size: 1.05rem;
         font-weight: 700;
-        color: #111;
+        color: var(--nz-success-title);
       }
 
       .nostr-zap-dialog .success-sub {
         font-size: 0.9rem;
-        color: #555;
+        color: var(--nz-success-sub);
       }
 
       @keyframes success-pop {
@@ -1072,7 +1143,7 @@ export const injectCSS = () => {
         animation-duration: 1.5s;
         animation-iteration-count: infinite;
         animation-timing-function: ease-in-out;
-        background-color: #e8e8e8;
+        background-color: var(--nz-skeleton-bg);
         border-radius: 4px;
         margin: 4px auto;
       }
@@ -1086,12 +1157,12 @@ export const injectCSS = () => {
       }
       .nostr-zap-dialog select[name="lightning-wallet"] {
         appearance: none;
-        background-color: white;
+        background-color: var(--nz-dialog-bg);
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%232D3748" width="24" height="24" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" /></svg>');
         background-repeat: no-repeat;
         background-position: right 0.7rem center;
         background-size: 16px;
-        border: 1px solid #CBD5E0;
+        border: 1px solid var(--nz-border);
         padding: 0.5rem 1rem;
         font-size: 1rem;
         border-radius: 0.25rem;
@@ -1099,6 +1170,17 @@ export const injectCSS = () => {
         margin-top: 24px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         cursor: pointer;
+        color: var(--nz-text);
+      }
+
+      :host(.theme-dark) .nostr-zap-dialog select[name="lightning-wallet"] {
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23E5E7EB" width="24" height="24" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" /></svg>');
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :host:not(.theme-light) .nostr-zap-dialog select[name="lightning-wallet"] {
+          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23E5E7EB" width="24" height="24" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" /></svg>');
+        }
       }
       .nostr-zap-dialog select[name="lightning-wallet"]:focus {
         outline: none;
@@ -1129,6 +1211,7 @@ export const injectCSS = () => {
 
   const host = document.createElement("div");
   document.body.appendChild(host);
+  legacyHost = host;
   shadow = host.attachShadow({ mode: "open" });
   shadow.appendChild(styleElement);
 };

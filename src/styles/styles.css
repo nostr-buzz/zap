@@ -11,6 +11,8 @@
   --dialog-bg: #ffffff;
   --hover-bg: #edf2f7;
   --border: #ddd;
+  --surface: rgba(255, 255, 255, 0.85);
+  --focus-ring: rgba(0, 0, 0, 0.12);
   --skeleton: #fdfdfd;
   --skeleton2: #e2e5ec;
   --new-mark: #22c55e;
@@ -42,6 +44,38 @@
   --text-dark-tertiary: rgba(0, 0, 0, 0.5);
 }
 
+/* Dark theme overrides (applied when UIManager adds .dark-theme to the host) */
+:host(.dark-theme) {
+  --main-text: #f3f4f6;
+  --pubkey-text: rgba(243, 244, 246, 0.65);
+  --custom-title-text: rgba(243, 244, 246, 0.82);
+  --name-text: rgba(243, 244, 246, 0.9);
+  --dialog-bg: #0b0f14;
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.12);
+  --surface: rgba(17, 24, 39, 0.78);
+  --focus-ring: rgba(255, 255, 255, 0.18);
+  --skeleton: rgba(255, 255, 255, 0.06);
+  --skeleton2: rgba(255, 255, 255, 0.12);
+}
+
+/* If no explicit theme class is set, follow system preference */
+@media (prefers-color-scheme: dark) {
+  :host:not(.light-theme):not(.dark-theme) {
+    --main-text: #f3f4f6;
+    --pubkey-text: rgba(243, 244, 246, 0.65);
+    --custom-title-text: rgba(243, 244, 246, 0.82);
+    --name-text: rgba(243, 244, 246, 0.9);
+    --dialog-bg: #0b0f14;
+    --hover-bg: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.12);
+    --surface: rgba(17, 24, 39, 0.78);
+    --focus-ring: rgba(255, 255, 255, 0.18);
+    --skeleton: rgba(255, 255, 255, 0.06);
+    --skeleton2: rgba(255, 255, 255, 0.12);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -70,6 +104,11 @@ button {
   flex-direction: column;
 }
 
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
 .close-dialog-button {
   color: var(--custom-title-text);
   position: absolute;
@@ -79,7 +118,7 @@ button {
   height: 36px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--surface);
   cursor: pointer;
   padding: 0;
   display: inline-flex;
@@ -99,7 +138,7 @@ button {
 
 .close-dialog-button:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .close-dialog-button .close-icon {

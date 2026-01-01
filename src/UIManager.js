@@ -44,6 +44,15 @@ class NostrZapViewDialog extends HTMLElement {
     try {
       await this.#initializationPromise;
       this.#state.isInitialized = true;
+
+      // Apply initial theme (attribute > system preference > default)
+      const attrTheme = (this.getAttribute("data-theme") || "").toLowerCase();
+      const systemTheme = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ? "dark"
+        : "light";
+      const theme = (attrTheme === "dark" || attrTheme === "light") ? attrTheme : systemTheme;
+      cacheManager.updateThemeState(this.viewId, { theme, isInitialized: true });
+      this.#applyTheme();
       
       // Initialize the full UI
       const config = subscriptionManager.getViewConfig(this.viewId);
@@ -154,6 +163,7 @@ class NostrZapViewDialog extends HTMLElement {
   #applyTheme() {
     const state = cacheManager.getThemeState(this.viewId);
     const themeClass = state.theme === "dark" ? "dark-theme" : "light-theme";
+    this.shadowRoot.host.classList.remove("dark-theme", "light-theme");
     this.shadowRoot.host.classList.add(themeClass);
   }
 
@@ -167,6 +177,9 @@ class NostrZapViewDialog extends HTMLElement {
     }
 
     window.addEventListener("popstate", this.popStateHandler);
+
+    // Ensure theme is applied before opening.
+    this.#applyTheme();
 
     dialog.showModal();
     queueMicrotask(() => {
@@ -516,6 +529,12 @@ const dialogManager = {
     const button = document.querySelector(`button[data-zap-view-id="${viewId}"]`);
     if (button?.getAttribute("data-nzv-id")) {
       dialog.setAttribute("data-nzv-id", button.getAttribute("data-nzv-id"));
+    }
+
+    // Optional theme override: data-theme="light"|"dark" on the trigger button
+    const buttonTheme = (button?.getAttribute("data-theme") || "").toLowerCase();
+    if (buttonTheme === "light" || buttonTheme === "dark") {
+      dialog.setAttribute("data-theme", buttonTheme);
     }
 
     document.body.appendChild(dialog);
