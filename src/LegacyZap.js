@@ -290,6 +290,50 @@ const renderDialog = (htmlStrTemplate) => {
   return dialog;
 };
 
+const showSuccessAndClose = (dialog, message = "Payment successful") => {
+  try {
+    if (!dialog) return;
+    // Avoid double overlays
+    if (dialog.querySelector(".success-overlay")) return;
+
+    const overlay = document.createElement("div");
+    overlay.className = "success-overlay";
+    overlay.innerHTML = `
+      <div class="success-card" role="status" aria-live="polite">
+        <div class="success-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path class="success-check" d="M20 6L9 17l-5-5" />
+          </svg>
+        </div>
+        <div class="success-title">${message}</div>
+        <div class="success-sub">Closing in 3 seconds…</div>
+      </div>
+    `;
+
+    dialog.appendChild(overlay);
+
+    // Trigger CSS transition
+    requestAnimationFrame(() => {
+      overlay.classList.add("show");
+    });
+
+    setTimeout(() => {
+      try {
+        dialog.close();
+      } catch {
+        // ignore
+      }
+    }, 3000);
+  } catch {
+    // If anything goes wrong, fall back to closing.
+    try {
+      dialog.close();
+    } catch {
+      // ignore
+    }
+  }
+};
+
 const renderInvoiceDialog = ({ dialogHeader, invoice, relays, buttonColor }) => {
   const cachedLightningUri = getCachedLightningUri();
   const options = [
@@ -309,7 +353,12 @@ const renderInvoiceDialog = ({ dialogHeader, invoice, relays, buttonColor }) => 
   ];
 
   const invoiceDialog = renderDialog(`
-        <button class="close-button">X</button>
+        <button class="close-button" type="button" aria-label="Close">
+          <svg class="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6L18 18" />
+            <path d="M18 6L6 18" />
+          </svg>
+        </button>
         ${dialogHeader}
         <div class="qrcode">
           <div class="overlay">copied invoice to clipboard</div>
@@ -346,7 +395,7 @@ const renderInvoiceDialog = ({ dialogHeader, invoice, relays, buttonColor }) => 
     relays,
     invoice,
     onSuccess: () => {
-      invoiceDialog.close();
+      showSuccessAndClose(invoiceDialog, "Zap received");
     },
   });
 
@@ -380,7 +429,12 @@ const renderInvoiceDialog = ({ dialogHeader, invoice, relays, buttonColor }) => 
 
 const renderErrorDialog = (message, npub) => {
   const errorDialog = renderDialog(`
-    <button class="close-button">X</button>
+    <button class="close-button" type="button" aria-label="Close">
+      <svg class="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M6 6L18 18" />
+        <path d="M18 6L6 18" />
+      </svg>
+    </button>
     <p class="error-message">${message}</p>
     <a href="https://nosta.me/${npub}" target="_blank" rel="noreferrer">
       <button class="cta-button">View Nostr Profile</button>
@@ -441,7 +495,12 @@ const renderAmountDialog = async ({
   };
 
   const amountDialog = renderDialog(`
-      <button class="close-button">X</button>
+      <button class="close-button" type="button" aria-label="Close">
+        <svg class="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 6L18 18" />
+          <path d="M18 6L6 18" />
+        </svg>
+      </button>
       <div class="dialog-header-container">
         <h2 class="skeleton-placeholder"></h2>
           <img
@@ -453,27 +512,31 @@ const renderAmountDialog = async ({
         <p class="skeleton-placeholder"></p>
       </div>
       <div class="preset-zap-options-container">
-        <button data-value="21">21 ⚡️</button>
-        <button data-value="69">69 ⚡️</button>
-        <button data-value="420">420 ⚡️</button>
-        <button data-value="1337">1337 ⚡️</button>
-        <button data-value="5000">5k ⚡️</button>
-        <button data-value="10000">10k ⚡️</button>
-        <button data-value="21000">21k ⚡️</button>
-        <button data-value="1000000">1M ⚡️</button>
+        <button data-value="21">🌱 21 ⚡️</button>
+        <button data-value="69">😎 69 ⚡️</button>
+        <button data-value="210">✨ 210 ⚡️</button>
+        <button data-value="420">🔥 420 ⚡️</button>
+        <button data-value="1337">🚀 1337 ⚡️</button>
+        <button data-value="5000">💎 5k ⚡️</button>
+        <button data-value="10000">🐋 10k ⚡️</button>
+        <button data-value="21000">🏆 21k ⚡️</button>
+        <button data-value="1000000">👑 1M ⚡️</button>
       </div>
       <form>
         <input name="amount" type="number" placeholder="amount in sats" required />
         <input name="comment" placeholder="optional comment" />
-        <button class="cta-button" 
-          ${
-            buttonColor
-              ? `style="background-color: ${buttonColor}; color: ${getContrastingTextColor(
-                  buttonColor
-                )}"`
-              : ""
-          } 
-          type="submit" disabled>Zap</button>
+        <div class="form-actions">
+          <button class="cancel-button" type="button">Cancel</button>
+          <button class="cta-button" 
+            ${
+              buttonColor
+                ? `style="background-color: ${buttonColor}; color: ${getContrastingTextColor(
+                    buttonColor
+                  )}"`
+                : ""
+            } 
+            type="submit" disabled>Zap</button>
+        </div>
       </form>
     `);
 
@@ -484,6 +547,7 @@ const renderAmountDialog = async ({
   const amountInput = amountDialog.querySelector('input[name="amount"]');
   const commentInput = amountDialog.querySelector('input[name="comment"]');
   const zapButtton = amountDialog.querySelector('button[type="submit"]');
+  const cancelButton = amountDialog.querySelector('.cancel-button');
   const dialogHeaderContainer = amountDialog.querySelector(
     ".dialog-header-container"
   );
@@ -523,6 +587,10 @@ const renderAmountDialog = async ({
     .addEventListener("click", function () {
       amountDialog.close();
     });
+
+  cancelButton?.addEventListener("click", function () {
+    amountDialog.close();
+  });
 
   presetButtonsContainer.addEventListener("click", function (event) {
     if (event.target.matches("button")) {
@@ -569,7 +637,9 @@ const renderAmountDialog = async ({
         try {
           await window.webln.enable();
           await window.webln.sendPayment(invoice);
-          amountDialog.close();
+          // WebLN paid successfully: show feedback before closing.
+          setZapButtonToDefaultState();
+          showSuccessAndClose(amountDialog, "Zap sent");
         } catch (_e) {
           showInvoiceDialog();
         }
@@ -673,17 +743,24 @@ export const injectCSS = () => {
 
   styleElement.innerHTML = `
       .nostr-zap-dialog {
-        width: 424px;
-        min-width: 376px;
+        width: 360px;
+        max-width: calc(100vw - 24px);
         margin: auto;
         box-sizing: content-box;
         border: none;
         border-radius: 10px;
-        padding: 36px;
+        padding: 22px;
         text-align: center;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
         background-color: white;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+      }
+
+      .nostr-zap-dialog::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(2px);
       }
       .nostr-zap-dialog[open],
       .nostr-zap-dialog form {
@@ -746,24 +823,92 @@ export const injectCSS = () => {
       .nostr-zap-dialog .cta-button:hover {
         background-color: indigo;
       }
+
+      .nostr-zap-dialog .form-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .nostr-zap-dialog .form-actions button {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+      }
+
+      .nostr-zap-dialog .form-actions .cta-button {
+        margin-top: 0;
+      }
+
+      .nostr-zap-dialog .cancel-button {
+        background: rgba(255, 255, 255, 0.85);
+      }
+
+      @media only screen and (max-width: 360px) {
+        .nostr-zap-dialog .form-actions {
+          grid-template-columns: 1fr;
+        }
+      }
       .nostr-zap-dialog .close-button {
-        background-color: inherit;
-        color: black;
-        border-radius: 50%;
-        width: 42px;
-        height: 42px;
         position: absolute;
-        top: 8px;
-        right: 8px;
-        padding: 12px;
-        border: none;
+        top: 6px;
+        right: 6px;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgb(226, 232, 240);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.85);
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .nostr-zap-dialog .close-button:hover {
+        background-color: #edf2f7;
+      }
+
+      .nostr-zap-dialog .close-button:active {
+        transform: translateY(0.5px);
+      }
+
+      .nostr-zap-dialog .close-button:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+      }
+
+      .nostr-zap-dialog .close-button .close-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .nostr-zap-dialog .close-button .close-icon path {
+        stroke: #555;
+        stroke-width: 2.25;
+        stroke-linecap: round;
       }
       .nostr-zap-dialog .preset-zap-options-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        margin: 24px 0 8px 0;
-        height: 120px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin: 18px 0 10px 0;
+        height: auto;
+      }
+
+      /* Make preset buttons fluid so the grid never breaks */
+      .nostr-zap-dialog .preset-zap-options-container button {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+      }
+
+      /* Comfortable tap targets */
+      .nostr-zap-dialog .preset-zap-options-container button {
+        height: 44px;
+        padding: 10px 0;
       }
       .nostr-zap-dialog input {
         padding: 12px;
@@ -820,6 +965,88 @@ export const injectCSS = () => {
       }
       .nostr-zap-dialog .qrcode .overlay.show {
         opacity: 1;
+      }
+
+      /* Payment success overlay */
+      .nostr-zap-dialog .success-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        transform: scale(0.98);
+        transition: opacity 180ms ease, transform 180ms ease;
+      }
+
+      .nostr-zap-dialog .success-overlay.show {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .nostr-zap-dialog .success-card {
+        width: 100%;
+        max-width: 320px;
+        border: 1px solid rgb(226, 232, 240);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+        padding: 18px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .nostr-zap-dialog .success-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+        display: grid;
+        place-items: center;
+        animation: success-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .nostr-zap-dialog .success-icon svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .nostr-zap-dialog .success-check {
+        fill: none;
+        stroke: #16a34a;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 40;
+        stroke-dashoffset: 40;
+        animation: success-draw 700ms 120ms ease forwards;
+      }
+
+      .nostr-zap-dialog .success-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #111;
+      }
+
+      .nostr-zap-dialog .success-sub {
+        font-size: 0.9rem;
+        color: #555;
+      }
+
+      @keyframes success-pop {
+        0% { transform: scale(0.86); opacity: 0.2; }
+        60% { transform: scale(1.06); opacity: 1; }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes success-draw {
+        to { stroke-dashoffset: 0; }
       }
       @keyframes nostr-zap-dialog-spinner {
         0% {
@@ -883,18 +1110,19 @@ export const injectCSS = () => {
           padding: 18px;
         }
 
-        .nostr-zap-dialog button {
-          width: 92px;
-          max-width: 92px;
+        /* On small screens keep a clean grid */
+        .nostr-zap-dialog .preset-zap-options-container {
+          gap: 8px;
         }
       }
       @media only screen and (max-width: 413px) {
         .nostr-zap-dialog {
-          min-width: 324px;
+          width: calc(100vw - 18px);
         }
-        .nostr-zap-dialog button {
-          width: 78px;
-          max-width: 78px;
+
+        /* Very narrow screens: 2 columns so labels never collide */
+        .nostr-zap-dialog .preset-zap-options-container {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
   `;

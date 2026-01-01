@@ -85,8 +85,13 @@ export class DialogComponents {
     return `
       <dialog class="dialog">
         <h2 class="dialog-title"><a href="#" target="_blank"></a></h2>
-        <button class="close-dialog-button">X</button>
-        <div class="zap-stats"></div>
+        <button class="close-dialog-button" type="button" aria-label="Close">
+          <svg class="close-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6L18 18" />
+            <path d="M18 6L6 18" />
+          </svg>
+        </button>
+        <div class="note-preview" hidden></div>
         <ul class="dialog-zap-list"></ul>
       </dialog>
     `;

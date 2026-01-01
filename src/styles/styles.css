@@ -7,15 +7,12 @@
   --main-text: Black;
   --pubkey-text: #888;
   --custom-title-text: #555;
-  --stats-item-text: #333;
   --name-text: #444;
   --dialog-bg: #ffffff;
-  --zap-stats-bg: #edf2f7;
   --hover-bg: #edf2f7;
   --border: #ddd;
   --skeleton: #fdfdfd;
   --skeleton2: #e2e5ec;
-  --zap-stats-skeleton-bg: #bbc5cf;
   --new-mark: #22c55e;
 
   /* Zap Amount Colors */
@@ -75,22 +72,45 @@ button {
 
 .close-dialog-button {
   color: var(--custom-title-text);
-  font-size: 16px;
-  font-weight: 500;
   position: absolute;
-  right: 0;
-  width: 2.625rem;
-  height: 2.625rem;
-  border: none;
-  border-radius: 50%;
-  background: none;
+  top: 6px;
+  right: 6px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
   cursor: pointer;
-  padding: 10px;
-  text-align: center;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .close-dialog-button:hover {
   background-color: var(--hover-bg);
+}
+
+.close-dialog-button:active {
+  transform: translateY(0.5px);
+}
+
+.close-dialog-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+}
+
+.close-dialog-button .close-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.close-dialog-button .close-icon path {
+  stroke: var(--custom-title-text);
+  stroke-width: 2.25;
+  stroke-linecap: round;
 }
 
 .dialog-title {
@@ -124,46 +144,114 @@ button {
   font-size: 1rem;
 }
 
-.zap-stats {
-  min-height: 80px;
-  padding: 6px 14px;
-  background: var(--zap-stats-bg);
-  border-radius: 6px;
-  display: grid;
-  grid-template-columns: 90px 1fr 40px;
-  grid-template-rows: repeat(3, 1fr);
+.note-preview {
+  margin: 6px 8px 0;
+}
+
+.note-preview-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.02);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-preview-loading {
+  color: var(--pubkey-text);
+  font-size: 0.9rem;
+}
+
+.note-preview-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.note-preview-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.note-preview-author {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  margin: 0 8px;
-
-  .stats-item {
-    height: 23px;
-    color: var(--stats-item-text);
-    font-size: 0.9rem;
-
-    .number {
-      font-size: 1.1rem;
-      font-weight: 500;
-    }
-
-    .number.skeleton {
-      width: 100%;
-      background: linear-gradient(90deg,
-          var(--skeleton) 0%,
-          var(--zap-stats-skeleton-bg) 50%,
-          var(--skeleton) 100%);
-      background-size: 200% 100%;
-    }
-  }
+  min-width: 0;
 }
 
-.stats-item:nth-child(3n + 1) {
-  justify-content: flex-start;
+.note-preview-name {
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--custom-title-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.stats-item:nth-child(3n + 2),
-.stats-item:nth-child(3n + 3) {
-  justify-content: flex-end;
+.note-preview-lnurl {
+  font-size: 0.78rem;
+  color: var(--pubkey-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.note-preview-media {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  /* Use a light background so images don't show black padding/letterboxing */
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.note-preview-media img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 260px;
+  /* Avoid black bars around images; crop slightly if needed */
+  object-fit: cover;
+  background: transparent;
+}
+
+.note-preview-media video {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 320px;
+}
+
+.note-preview-media iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  display: block;
+  background: #000;
+}
+
+.note-preview-content {
+  font-size: 0.92rem;
+  color: var(--main-text);
+  line-height: 1.45;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.note-preview-empty {
+  color: var(--pubkey-text);
+}
+
 
 .text-muted {
   margin-right: 16px;
@@ -439,7 +527,7 @@ button {
 .loading-spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid var(--zap-stats-bg);
+  border: 3px solid var(--border);
   border-top: 3px solid var(--pubkey-text);
   border-radius: 50%;
   animation: spin 1s linear infinite;

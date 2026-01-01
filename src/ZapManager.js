@@ -1,6 +1,5 @@
 import { decodeIdentifier, isEventIdentifier } from "./utils.js";
 import { APP_CONFIG } from "./AppConfig.js";
-import { statsManager } from "./StatsManager.js";
 import { eventPool } from "./EventPool.js";
 import { cacheManager } from "./CacheManager.js";
 import { profilePool } from "./ProfilePool.js";
@@ -407,9 +406,6 @@ class ZapSubscriptionManager {
 
       // Update stats only for real-time zap events (pass identifier)
       if (event.isRealTimeEvent) {
-        const config = this.getViewConfig(viewId);
-        statsManager.handleZapEvent(event, viewId, config?.identifier);
-
         // Update UI immediately
         if (this.zapListUI) {
           this.zapListUI.prependZap(event).catch(console.error);

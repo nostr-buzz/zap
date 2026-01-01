@@ -8,7 +8,6 @@ import {
   showErrorMessage,
 } from "./UIManager.js";
 import { subscriptionManager } from "./ZapManager.js";
-import { statsManager } from "./StatsManager.js";
 import { profilePool } from "./ProfilePool.js";
 import { eventPool } from "./EventPool.js";
 import { cacheManager } from "./CacheManager.js";
@@ -80,8 +79,6 @@ async function handleButtonClick(button, viewId) {
           await Promise.all([
             eventPool.connectToRelays(config.relayUrls),
             subscriptionManager.initializeSubscriptions(config, viewId),
-            // Initialize stats only once per identifier
-            identifier ? statsManager.initializeStats(identifier, viewId, true) : Promise.resolve(),
           ]);
           button.setAttribute("data-initialized", "true");
         }
@@ -130,7 +127,6 @@ export { APP_CONFIG, ViewerConfig } from "./AppConfig.js";
 export { profilePool } from "./ProfilePool.js";
 export { eventPool } from "./EventPool.js";
 export { subscriptionManager } from "./ZapManager.js";
-export { statsManager } from "./StatsManager.js";
 export { cacheManager } from "./CacheManager.js";
 
 // nostr-zap (merged)

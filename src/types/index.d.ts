@@ -24,10 +24,6 @@ declare module 'nostr-zap' {
     initializeSubscriptions(config: ViewerConfigType, viewId: string): Promise<void>;
   }
 
-  export interface StatsManager {
-    initializeStats(identifier: string, viewId: string, initialize: boolean): Promise<void>;
-  }
-
   export interface CacheManager {
     getZapEvents(viewId: string): any[];
     processCachedData(viewId: string, config: ViewerConfigType): Promise<{
@@ -40,7 +36,6 @@ declare module 'nostr-zap' {
   export const APP_CONFIG: any;
   export const cacheManager: CacheManager;
   export const subscriptionManager: SubscriptionManager;
-  export const statsManager: StatsManager;
 
   export function initialize(options?: Record<string, any>): void;
   export function nostrZapView(options?: Record<string, any>): void;

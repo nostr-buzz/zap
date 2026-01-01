@@ -1,13 +1,14 @@
-import { statsUI } from "./ui/StatsUI.js";
 import { ProfileUI } from "./ui/ProfileUI.js";
 import { ZapListUI } from "./ui/ZapListUI.js";
 import { DialogComponents } from "./DialogComponents.js";
 import { APP_CONFIG } from "./AppConfig.js";
 import styles from "./styles/styles.css";
-import { formatIdentifier } from "./utils.js";  // isValidCount removed
+import { escapeHTML, formatIdentifier, safeNip19Decode, sanitizeImageUrl, getProfileDisplayName } from "./utils.js";  // isValidCount removed
 import { cacheManager } from "./CacheManager.js";
 import { subscriptionManager } from "./ZapManager.js"; // Import subscription manager
-import { statsManager } from "./StatsManager.js"; // Import stats manager
+import { eventPool } from "./EventPool.js";
+import { profilePool } from "./ProfilePool.js";
+import defaultIcon from "./assets/nostr-icon.svg";
 
 class NostrZapViewDialog extends HTMLElement {
   #state;
@@ -51,15 +52,6 @@ class NostrZapViewDialog extends HTMLElement {
       }
       await this.#initializeFullUI(config);
       
-      // Initialize stats: if already available, reuse existing data
-      const identifier = this.getAttribute("data-nzv-id");
-      if (identifier) {
-        const stats = await statsManager.getCurrentStats(this.viewId);
-        if (stats) {
-          this.statsUI.displayStats(stats);
-        }
-      }
-      
       this.#state.isInitialized = true;
       this.dispatchEvent(new CustomEvent('dialog-initialized', { 
         detail: { viewId: this.viewId }
@@ -92,7 +84,6 @@ class NostrZapViewDialog extends HTMLElement {
     this.shadowRoot.appendChild(styleSheet);
 
     // Initialize UI components
-    this.statsUI = new statsUI(this.shadowRoot);
     this.profileUI = new ProfileUI();
     this.zapListUI = new ZapListUI(this.shadowRoot, this.profileUI, this.viewId, config);
 
@@ -107,19 +98,6 @@ class NostrZapViewDialog extends HTMLElement {
       await this.zapListUI.renderZapListFromCache(zapEvents);
     }
 
-    // Initialize stats (prefer cached data)
-    const identifier = this.getAttribute("data-nzv-id");
-    if (identifier) {
-      const cachedStats = await cacheManager.getCachedStats(this.viewId, identifier);
-      if (cachedStats?.stats) {
-        this.statsUI.displayStats(cachedStats.stats);
-      } else {
-        const currentStats = await statsManager.getCurrentStats(this.viewId);
-        if (currentStats) {
-          this.statsUI.displayStats(currentStats);
-        }
-      }
-    }
   }
 
   static get observedAttributes() {
@@ -197,6 +175,10 @@ class NostrZapViewDialog extends HTMLElement {
       }
     });
     this.#updateDialogTitle();
+
+    // If the target is a note/nevent, render a small post preview at the top.
+    // This is intentionally non-blocking (we don't want to delay opening the dialog).
+    this.#maybeRenderTargetNotePreview();
     
   }
 
@@ -213,8 +195,215 @@ class NostrZapViewDialog extends HTMLElement {
   }
 
 
-  displayZapStats(stats) {
-    this.statsUI.displayStats(stats);
+  async #maybeRenderTargetNotePreview() {
+    const previewEl = this.#getElement(".note-preview");
+    if (!previewEl) return;
+
+    const identifier = this.getAttribute("data-nzv-id") || "";
+    if (!identifier) {
+      previewEl.hidden = true;
+      previewEl.innerHTML = "";
+      return;
+    }
+
+    const decoded = safeNip19Decode(identifier);
+    const isNoteTarget = decoded?.type === "note" || decoded?.type === "nevent";
+    if (!isNoteTarget) {
+      previewEl.hidden = true;
+      previewEl.innerHTML = "";
+      return;
+    }
+
+    const eventId = decoded.type === "note" ? decoded.data : decoded.data?.id;
+    if (!eventId) {
+      previewEl.hidden = true;
+      previewEl.innerHTML = "";
+      return;
+    }
+
+    const cfg = subscriptionManager.getViewConfig(this.viewId);
+    const relays = Array.isArray(cfg?.relayUrls) ? cfg.relayUrls : [];
+    if (!relays.length) {
+      previewEl.hidden = true;
+      previewEl.innerHTML = "";
+      return;
+    }
+
+    previewEl.hidden = false;
+    previewEl.innerHTML = `
+      <div class="note-preview-card">
+        <div class="note-preview-loading">Loading post…</div>
+      </div>
+    `;
+
+    try {
+      const ev = await eventPool.zapPool.get(relays, { ids: [eventId], limit: 1 });
+      if (!ev || typeof ev.content !== "string") {
+        previewEl.hidden = true;
+        previewEl.innerHTML = "";
+        return;
+      }
+
+      const pubkey = typeof ev.pubkey === "string" ? ev.pubkey : "";
+      let profile = null;
+      if (pubkey && pubkey.length === 64) {
+        try {
+          const results = await profilePool.fetchProfiles([pubkey]);
+          profile = Array.isArray(results) ? results[0] : null;
+        } catch (_e) {
+          profile = null;
+        }
+      }
+
+      const displayName = escapeHTML(getProfileDisplayName(profile) || "anonymous");
+      const lnurlRaw = profile?.lud16 || profile?.lud06;
+      let lnurl = lnurlRaw ? escapeHTML(String(lnurlRaw)) : "";
+      // If it's a long lnurl (lud06), keep it compact.
+      if (lnurl && lnurl.length > 42) {
+        lnurl = `${lnurl.slice(0, 18)}…${lnurl.slice(-14)}`;
+      }
+
+      const pictureUrl = profile?.picture ? sanitizeImageUrl(profile.picture) : null;
+      const avatarSrc = pictureUrl || defaultIcon;
+
+      const media = this.#buildNoteMedia(ev.content || "");
+      const contentHtml = this.#formatNoteContent(ev.content || "", media?.stripUrl);
+
+      previewEl.hidden = false;
+      previewEl.innerHTML = `
+        <div class="note-preview-card">
+          <div class="note-preview-header">
+            <img class="note-preview-avatar" src="${avatarSrc}" alt="${displayName}" loading="lazy" />
+            <div class="note-preview-author">
+              <div class="note-preview-name" title="${displayName}">${displayName}</div>
+              ${lnurl ? `<div class="note-preview-lnurl" title="lnurl">⚡ ${lnurl}</div>` : ""}
+            </div>
+          </div>
+
+          ${media?.html ? `<div class="note-preview-media">${media.html}</div>` : ""}
+          <div class="note-preview-content">${contentHtml}</div>
+        </div>
+      `;
+    } catch (_e) {
+      previewEl.hidden = true;
+      previewEl.innerHTML = "";
+    }
+  }
+
+  #sanitizeHttpUrl(url) {
+    if (!url || typeof url !== "string") return null;
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+      return parsed.href;
+    } catch {
+      return null;
+    }
+  }
+
+  #extractUrls(text) {
+    if (!text || typeof text !== "string") return [];
+    // Conservative URL matcher (good enough for Nostr note content).
+    const matches = text.match(/https?:\/\/[^\s<>()\[\]"']+/g) || [];
+    const unique = [];
+    const seen = new Set();
+    for (const raw of matches) {
+      const sanitized = this.#sanitizeHttpUrl(raw);
+      if (!sanitized) continue;
+      if (seen.has(sanitized)) continue;
+      seen.add(sanitized);
+      unique.push(sanitized);
+      if (unique.length >= 12) break;
+    }
+    return unique;
+  }
+
+  #getYoutubeId(url) {
+    const safe = this.#sanitizeHttpUrl(url);
+    if (!safe) return null;
+    try {
+      const u = new URL(safe);
+      const host = u.hostname.replace(/^www\./, "").toLowerCase();
+
+      if (host === "youtu.be") {
+        const id = (u.pathname.split("/").filter(Boolean)[0] || "").trim();
+        return id && id.length >= 8 ? id : null;
+      }
+
+      if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+        // watch?v=
+        const v = u.searchParams.get("v");
+        if (v) return v;
+
+        // /shorts/<id>
+        const parts = u.pathname.split("/").filter(Boolean);
+        if (parts[0] === "shorts" && parts[1]) return parts[1];
+        if (parts[0] === "embed" && parts[1]) return parts[1];
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  #buildNoteMedia(content) {
+    const urls = this.#extractUrls(content);
+    if (!urls.length) return null;
+
+    // Priority: YouTube > video > image
+    for (const url of urls) {
+      const youtubeId = this.#getYoutubeId(url);
+      if (youtubeId) {
+        const safeId = escapeHTML(youtubeId);
+        return {
+          type: "youtube",
+          stripUrl: url,
+          html: `<iframe src="https://www.youtube-nocookie.com/embed/${safeId}" title="YouTube video" loading="lazy" referrerpolicy="no-referrer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`,
+        };
+      }
+    }
+
+    for (const url of urls) {
+      const lower = url.toLowerCase();
+      if (lower.match(/\.(mp4|webm)(\?|#|$)/)) {
+        return {
+          type: "video",
+          stripUrl: url,
+          html: `<video src="${escapeHTML(url)}" controls playsinline preload="metadata"></video>`,
+        };
+      }
+    }
+
+    for (const url of urls) {
+      const lower = url.toLowerCase();
+      if (lower.match(/\.(png|jpe?g|gif|webp|avif)(\?|#|$)/)) {
+        return {
+          type: "image",
+          stripUrl: url,
+          html: `<img src="${escapeHTML(url)}" alt="Post media" loading="lazy" />`,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  #formatNoteContent(raw, stripUrl = null) {
+    const text = typeof raw === "string" ? raw : "";
+    let cleaned = text;
+
+    if (stripUrl && typeof stripUrl === "string") {
+      // Remove the first media url from content to reduce duplication.
+      cleaned = cleaned.split(stripUrl).join("");
+    }
+
+    cleaned = cleaned.trim();
+    if (!cleaned) return "<span class=\"note-preview-empty\">(no text)</span>";
+
+    // Keep it compact: the preview should not dominate the modal.
+    const max = 520;
+    const clipped = cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned;
+    return escapeHTML(clipped).replace(/\n/g, "<br>");
   }
 
   #getElement(selector) {
@@ -234,11 +423,37 @@ class NostrZapViewDialog extends HTMLElement {
 
     const customTitle = fetchButton.getAttribute("data-title");
     const identifier = fetchButton.getAttribute("data-nzv-id");
+
+    // Some integrators set data-title to the page hostname (e.g. "osats.money").
+    // That looks odd as a dialog title, so ignore titles that match the current host.
+    const host = (window.location?.hostname || "").replace(/^www\./i, "").toLowerCase();
+    const normalizedCustomTitle = (customTitle || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*/, "");
+    const effectiveCustomTitle = (normalizedCustomTitle && host && normalizedCustomTitle === host)
+      ? ""
+      : (customTitle || "");
+
+    // For note/nevent targets, avoid linking out to external clients.
+    const decoded = identifier ? safeNip19Decode(identifier) : null;
+    const isNoteTarget = decoded?.type === "note" || decoded?.type === "nevent";
+    if (isNoteTarget) {
+      title.href = "#";
+      title.removeAttribute("target");
+      title.removeAttribute("rel");
+      title.style.cursor = "default";
+    } else {
+      title.href = identifier ? `https://njump.me/${identifier}` : "#";
+      title.setAttribute("target", "_blank");
+      title.setAttribute("rel", "noreferrer");
+      title.style.cursor = "pointer";
+    }
     
-    title.href = identifier ? `https://njump.me/${identifier}` : '#';
-    
-    if (customTitle?.trim()) {
-      title.textContent = customTitle;
+    if (effectiveCustomTitle?.trim()) {
+      title.textContent = effectiveCustomTitle;
       titleContainer.classList.add("custom-title");
     } else {
       title.textContent = APP_CONFIG.DIALOG_CONFIG.DEFAULT_TITLE + formatIdentifier(identifier);
@@ -263,7 +478,6 @@ class NostrZapViewDialog extends HTMLElement {
     if (this.#state.isInitialized) {
       Object.assign(operations, {
         prependZap: (event) => this.zapListUI?.prependZap(event),
-        displayZapStats: (stats) => this.statsUI?.displayStats(stats),
         showNoZapsMessage: () => this.zapListUI?.showNoZapsMessage(),
         showErrorMessage: (message) => this.zapListUI?.showErrorMessage(message),
       });
@@ -371,7 +585,6 @@ export const closeDialog = (viewId) => {
     dialog.closeDialog();
   }
 };
-export const displayZapStats = (stats, viewId) => dialogManager.execute(viewId, 'displayZapStats', stats);
 export const replacePlaceholderWithZap = (event, index, viewId) => 
   dialogManager.execute(viewId, 'replacePlaceholderWithZap', event, index);
 export const prependZap = (event, viewId) => dialogManager.execute(viewId, 'prependZap', event);
