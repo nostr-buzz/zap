@@ -6,194 +6,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>nostr-zap — tutorial test</title>
   <meta name="description" content="Tutorial test page for nostr-zap (single zap button)." />
-
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
   <link rel="icon" href="./assets/favicon.ico" sizes="48x48" />
   <link rel="icon" href="./assets/list_alt_32dp_748499_FILL0_wght400_GRAD0_opsz40.svg" sizes="any"
     type="image/svg+xml" />
-
-  <style>
-    :root {
-      --bg: #ffffff;
-      --bg2: #f8fafc;
-      --border: rgba(2, 6, 23, 0.10);
-      --text: rgba(2, 6, 23, 0.92);
-      --muted: rgba(2, 6, 23, 0.62);
-      --shadow: 0 18px 60px rgba(2, 6, 23, 0.10);
-      --radius: 14px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      height: 100%;
-    }
-
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      background: linear-gradient(180deg, var(--bg), var(--bg2));
-      color: var(--text);
-    }
-
-    .container {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 28px 18px 56px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 650;
-      letter-spacing: 0.2px;
-    }
-
-    .brand-logo {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      object-fit: contain;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      display: block;
-    }
-
-    .nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .card {
-      border: 1px solid var(--border);
-      background: rgba(2, 6, 23, 0.02);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: var(--shadow);
-    }
-
-    h1 {
-      margin: 0 0 10px;
-      font-size: 22px;
-      letter-spacing: -0.3px;
-    }
-
-    p {
-      margin: 0 0 14px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .mono {
-      font-family: var(--mono);
-      font-size: 12.5px;
-      color: var(--muted);
-      overflow-wrap: anywhere;
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    button {
-      appearance: none;
-      border: 1px solid rgba(2, 6, 23, 0.18);
-      background: rgba(2, 6, 23, 0.92);
-      color: rgba(255, 255, 255, 0.96);
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-weight: 650;
-      font-size: 14px;
-      cursor: pointer;
-      transition: transform 140ms ease, background 140ms ease;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      background: rgba(2, 6, 23, 0.86);
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    .footer {
-      margin-top: 12px;
-      font-size: 13px;
-      color: var(--muted);
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-  </style>
 </head>
 
-<body>
-  <div class="container">
-    <div class="topbar">
-      <div class="brand" aria-label="nostr-zap">
-        <img class="brand-logo" src="./assets/logo.png" width="46" height="46" alt="nostr-zap" />
+<body class="min-h-screen bg-gradient-to-b from-white to-slate-50 text-slate-900 font-sans m-0">
+  <div class="max-w-[860px] mx-auto px-[18px] py-[28px] pb-[56px]">
+    <div class="flex items-center justify-between gap-3.5 mb-4">
+      <div class="inline-flex items-center gap-2.5 font-semibold tracking-[0.2px]" aria-label="nostr-zap">
+        <img class="w-[46px] h-[46px] rounded-xl object-contain bg-transparent border-none shadow-none block" src="./assets/logo.png" width="46" height="46" alt="nostr-zap" />
         <span>nostr-zap</span>
       </div>
-      <nav class="nav">
-        <a href="./">Demo</a>
+      <nav class="flex items-center gap-3 text-slate-500 text-sm">
+        <a href="./" class="hover:underline">Demo</a>
         <span aria-hidden="true">·</span>
-        <a href="./docs.html">Docs</a>
+        <a href="./docs.html" class="hover:underline">Docs</a>
       </nav>
     </div>
-    <div class="card">
-      <h1>nostr-zap tutorial test</h1>
-      <p>
+    <div class="border border-slate-900/10 bg-slate-900/[0.02] rounded-[14px] p-[18px] shadow-[0_18px_60px_rgba(2,6,23,0.10)]">
+      <h1 class="m-0 mb-2.5 text-[22px] tracking-[-0.3px]">nostr-zap tutorial test</h1>
+      <p class="m-0 mb-3.5 text-slate-500 leading-[1.6]">
         Click the button below to open the Zap dialog and zap this profile.
         (This page loads the bundle from the full domain URL.)
       </p>
 
-      <div class="mono">
+      <div class="font-mono text-[12.5px] text-slate-500 break-words">
         npub: npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp
       </div>
 
-      <div class="row">
-        <button
+      <div class="flex gap-2.5 items-center flex-wrap mt-3.5">
+        <button class="appearance-none border border-slate-900/18 bg-slate-900/92 text-white/96 px-3.5 py-2.5 rounded-xl font-semibold text-sm cursor-pointer transition-transform duration-140 hover:-translate-y-px hover:bg-slate-900/86"
           data-npub="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
           data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol">
           Zap
         </button>
       </div>
 
-      <div class="footer">
+      <div class="mt-3 text-[13px] text-slate-500 flex justify-between gap-3 flex-wrap">
         <div>
-          <a href="./">Demo</a>
+          <a href="./" class="hover:underline">Demo</a>
           <span aria-hidden="true"> · </span>
-          <a href="./docs.html">Docs</a>
+          <a href="./docs.html" class="hover:underline">Docs</a>
         </div>
-        <div class="mono">bundle: https://zap.nostr.buzz/dist/nostr-zap.js</div>
+        <div class="font-mono text-[12.5px] text-slate-500 break-words">bundle: https://zap.nostr.buzz/dist/nostr-zap.js</div>
       </div>
     </div>
   </div>

@@ -1,988 +1,226 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" class="scroll-smooth">
 <head>
-  <title>nostr-zap</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Minimal demo for embeddable Nostr zap buttons (viewer + zap dialog)." />
-
-  <style>
-    :root {
-      /* Professional minimal theme */
-      --bg: #fafbfd;
-      --bg2: #f5f7fa;
-      --card: #ffffff;
-      --border: rgba(15, 23, 42, 0.06);
-      --border-light: rgba(15, 23, 42, 0.04);
-      --text: #0f172a;
-      --text-secondary: #475569;
-      --muted: #64748b;
-      --muted2: #94a3b8;
-      --accent: #6366f1;
-      --accent-hover: #4f46e5;
-      --success: #10b981;
-      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.03), 0 1px 2px rgba(15, 23, 42, 0.02);
-      --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 2px 4px -1px rgba(15, 23, 42, 0.02);
-      --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.05), 0 10px 10px -5px rgba(15, 23, 42, 0.02);
-      --shadow-xl: 0 25px 50px -12px rgba(15, 23, 42, 0.08);
-      --radius: 16px;
-      --radius-sm: 12px;
-      --radius-lg: 20px;
-      --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-      --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      --gradient-bitcoin: linear-gradient(135deg, #f7931a 0%, #ff9d00 100%);
-      --gradient-bg: linear-gradient(180deg, #fafbfd 0%, #f9fafb 100%);
-      --mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      height: 100%;
-    }
-
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      color: var(--text);
-      background: var(--gradient-bg);
-      min-height: 100vh;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    .container {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 48px 32px 80px;
-    }
-
-    @media (max-width: 1200px) {
-      .container {
-        padding: 40px 28px 64px;
+  <title>nostr-zap — The easiest way to receive zaps</title>
+  <meta name="description" content="Embeddable Nostr zap button for your website." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['SF Mono', 'Menlo', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              900: '#312e81',
+            }
+          }
+        }
       }
     }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 32px 20px 48px;
-      }
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-      margin-bottom: 56px;
-      padding: 16px 0;
-    }
-
-    @media (max-width: 768px) {
-      .topbar {
-        margin-bottom: 40px;
-        padding: 12px 0;
-      }
-    }
-
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-      font-weight: 600;
-      letter-spacing: -0.3px;
-      transition: opacity 0.2s ease;
-    }
-
-    .brand:hover {
-      opacity: 0.8;
-    }
-
-    .brand-logo {
-      width: 80px;
-      height: 80px;
-      border-radius: var(--radius);
-      object-fit: contain;
-      background: var(--card);
-      border: 1px solid var(--border-light);
-      box-shadow: var(--shadow);
-      display: block;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .brand-logo:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow);
-    }
-
-    .nav {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      color: var(--text-secondary);
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .nav a {
-      transition: color 0.2s ease;
-    }
-
-    .nav a:hover {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    .hero {
-      position: relative;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 72px 56px;
-      box-shadow: var(--shadow-lg);
-      margin-bottom: 56px;
-      overflow: hidden;
-    }
-
-    @media (max-width: 1024px) {
-      .hero {
-        padding: 56px 40px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .hero {
-        padding: 40px 28px;
-        margin-bottom: 40px;
-        border-radius: var(--radius);
-      }
-    }
-
-    @media (max-width: 480px) {
-      .hero {
-        padding: 32px 24px;
-      }
-    }
-
-    .hero::before {
-      display: none;
-    }
-
-    .hero::after {
-      content: '';
-      position: absolute;
-      top: -100px;
-      right: -100px;
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .hero h1 {
-      position: relative;
-      margin: 0 0 24px;
-      font-size: 56px;
-      line-height: 1.1;
-      letter-spacing: -1.6px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    @media (max-width: 1024px) {
-      .hero h1 {
-        font-size: 48px;
-        letter-spacing: -1.4px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 36px;
-        letter-spacing: -1px;
-        margin-bottom: 20px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .hero h1 {
-        font-size: 32px;
-        letter-spacing: -0.8px;
-      }
-    }
-
-    .hero p {
-      position: relative;
-      margin: 0;
-      max-width: 70ch;
-      line-height: 1.7;
-    }
-
-    .emoji-xl {
-      font-size: 68px;
-      line-height: 1;
-      margin-bottom: 28px;
-      display: block;
-      opacity: 0.95;
-    }
-
-    @media (max-width: 768px) {
-      .emoji-xl {
-        font-size: 56px;
-        margin-bottom: 24px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .emoji-xl {
-        font-size: 48px;
-        margin-bottom: 20px;
-      }
-    }
-
-    .emoji-lg {
-      font-size: 28px;
-      line-height: 1;
-      margin-right: 8px;
-    }
-
-    .lead {
-      margin-top: 0;
-      font-size: 20px;
-      color: var(--text-secondary);
-      max-width: 75ch;
-      line-height: 1.75;
-      font-weight: 500;
-    }
-
-    @media (max-width: 768px) {
-      .lead {
-        font-size: 18px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .lead {
-        font-size: 16px;
-      }
-    }
-
-    .sublead {
-      margin-top: 18px;
-      font-size: 16px;
-      color: var(--muted);
-      line-height: 1.7;
-      max-width: 78ch;
-    }
-
-    @media (max-width: 768px) {
-      .sublead {
-        font-size: 15px;
-        margin-top: 16px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .sublead {
-        font-size: 14px;
-      }
-    }
-
-    .pillrow {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 24px;
-    }
-
-    .pill {
-      border: 1px solid var(--border);
-      background: var(--bg);
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      transition: all 0.2s ease;
-    }
-
-    .pill:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      transform: translateY(-1px);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    @media (max-width: 768px) {
-      .grid {
-        gap: 12px;
-      }
-    }
-
-    .card-wide {
-      grid-column: span 12;
-    }
-
-    .card {
-      grid-column: span 6;
-      border: 1px solid var(--border);
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 32px;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg);
-      border-color: var(--border);
-    }
-
-    @media (max-width: 900px) {
-      .card {
-        grid-column: span 12;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .card {
-        padding: 24px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .card {
-        padding: 20px;
-      }
-    }
-
-    .card h2 {
-      margin: 0 0 14px;
-      font-size: 19px;
-      font-weight: 600;
-      letter-spacing: -0.3px;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-    }
-
-    @media (max-width: 768px) {
-      .card h2 {
-        font-size: 18px;
-      }
-    }
-
-    .card p {
-      margin: 0 0 18px;
-      color: var(--text-secondary);
-      font-size: 15px;
-      line-height: 1.7;
-    }
-
-    @media (max-width: 768px) {
-      .card p {
-        font-size: 14px;
-        margin-bottom: 16px;
-      }
-    }
-
-    .steps {
-      margin: 0;
-      padding-left: 20px;
-      color: var(--text-secondary);
-      font-size: 15px;
-      line-height: 1.7;
-    }
-
-    .steps li {
-      margin: 8px 0;
-    }
-
-    .hint {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-      margin-top: 12px;
-      padding: 12px;
-      background: var(--bg);
-      border-radius: 8px;
-      border-left: 3px solid var(--accent);
-    }
-
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
-
-    @media (max-width: 480px) {
-      .row {
-        gap: 10px;
-      }
-    }
-
-    .theme-controls {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-left: auto;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text-secondary);
-      font-size: 13px;
-      font-weight: 500;
-      user-select: none;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .theme-controls label {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .theme-select {
-      appearance: none;
-      border: 1px solid var(--border-light);
-      background: var(--bg);
-      color: var(--text);
-      padding: 6px 28px 6px 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2364748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      background-size: 14px;
-      transition: all 0.2s ease;
-    }
-
-    .theme-select:hover {
-      border-color: var(--border);
-    }
-
-    .theme-select:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(2, 6, 23, 0.12);
-    }
-
-    .btn {
-      appearance: none;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      padding: 12px 20px;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    @media (max-width: 480px) {
-      .btn {
-        padding: 10px 16px;
-        font-size: 13px;
-      }
-    }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .btn:active {
-      transform: translateY(0);
-    }
-
-    .btn-primary {
-      border: none;
-      background: var(--gradient-primary);
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-      transform: translateY(-2px);
-      color: white;
-      border: none;
-    }
-
-    .btn-green {
-      border: none;
-      background: var(--gradient-bitcoin);
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(247, 147, 26, 0.25);
-    }
-
-    .btn-green:hover {
-      background: linear-gradient(135deg, #e88516 0%, #f59500 100%);
-      box-shadow: 0 8px 20px rgba(247, 147, 26, 0.35);
-      transform: translateY(-2px);
-      color: white;
-      border: none;
-    }
-
-    .btn svg {
-      flex: 0 0 auto;
-    }
-
-    .section-title {
-      margin: 40px 0 20px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    details {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: var(--bg);
-      margin-top: 12px;
-    }
-
-    details summary {
-      cursor: pointer;
-      list-style: none;
-      padding: 12px 14px;
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 14px;
-      user-select: none;
-    }
-
-    details summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .codewrap {
-      padding: 12px;
-    }
-
-    .codebar {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      margin-bottom: 8px;
-    }
-
-    pre {
-      margin: 0;
-      padding: 16px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-light);
-      background: var(--bg);
-      overflow: auto;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-    }
-
-    @media (max-width: 768px) {
-      pre {
-        padding: 14px;
-        font-size: 12px;
-      }
-    }
-
-    code {
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 1.55;
-      color: inherit;
-      white-space: pre;
-    }
-
-    .copy {
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 500;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .copy:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow);
-      border-color: var(--accent);
-    }
-
-    .footer {
-      margin-top: 48px;
-      padding-top: 32px;
-      border-top: 1px solid var(--border-light);
-      color: var(--muted2);
-      font-size: 13px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--border-light);
-      margin: 28px 0;
-    }
-
-    @media (max-width: 768px) {
-      .section-title {
-        margin: 32px 0 16px;
-        font-size: 11px;
-      }
-
-      .nav {
-        gap: 16px;
-        font-size: 13px;
-      }
-
-      .brand-logo {
-        width: 64px;
-        height: 64px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .pillrow {
-        gap: 8px;
-      }
-
-      .pill {
-        font-size: 12px;
-        padding: 6px 12px;
-      }
-
-      .theme-controls {
-        font-size: 12px;
-        padding: 6px 10px;
-      }
-
-      .footer {
-        font-size: 12px;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-      }
-    }
-  </style>
-
-  <link rel="icon" href="./assets/favicon.ico" sizes="48x48" />
-  <link rel="icon" href="./assets/list_alt_32dp_748499_FILL0_wght400_GRAD0_opsz40.svg" sizes="any"
-    type="image/svg+xml" />
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="./assets/favicon.ico" />
 </head>
+<body class="bg-white text-slate-900 font-sans antialiased selection:bg-brand-100 selection:text-brand-900">
 
-<body>
-  <div class="container">
-    <div class="topbar">
-      <div class="brand" aria-label="nostr-zap">
-        <img class="brand-logo" src="./logo.png" width="68" height="68" alt="nostr-zap" />
+  <!-- Navbar -->
+  <nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2 font-bold text-lg tracking-tight hover:opacity-80 transition">
+        <img src="./logo.png" alt="Logo" class="w-8 h-8 rounded-lg shadow-sm">
+        <span>nostr-zap</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-slate-600">
+        <a href="#how-it-works" class="hover:text-brand-600 transition">How it works</a>
+        <a href="#demo" class="hover:text-brand-600 transition">Demo</a>
+        <a href="./docs.html" class="hover:text-brand-600 transition">Docs</a>
+        <a href="https://github.com/nostr-buzz/nostr-zap" target="_blank" class="text-slate-400 hover:text-slate-900 transition">
+            <!-- GitHub Icon -->
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
+        </a>
       </div>
-      <nav class="nav">
-        <a href="./docs.html">Docs</a>
-        <span aria-hidden="true">·</span>
-        <a href="#embed">Embed</a>
-      </nav>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 text-brand-600 text-xs font-semibold mb-6 border border-brand-100">
+      <span>New</span>
+      <span class="w-px h-3 bg-brand-200"></span>
+      <span>v1.0 is out</span>
+    </div>
+    <h1 class="text-5xl md:text-6xl font-bold tracking-tight text-slate-900 mb-6">
+      Receive Bitcoin Zaps <br class="hidden md:block" /> on your website.
+    </h1>
+    <p class="text-lg text-slate-500 mb-10 max-w-2xl mx-auto leading-relaxed">
+      The easiest way to monetize your content. Add a single line of code to accept Lightning payments directly to your Nostr profile. No backend required.
+    </p>
+    <div class="flex items-center justify-center gap-4">
+      <a href="#embed" class="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-500 hover:-translate-y-0.5 transition-all shadow-lg shadow-brand-500/20">
+        Get Started
+      </a>
+      <a href="#demo" class="px-6 py-3 rounded-xl bg-white text-slate-700 font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all">
+        Live Demo
+      </a>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="how-it-works" class="py-20 bg-slate-50 border-y border-slate-100">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 mb-4">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <h3 class="font-semibold text-slate-900 mb-2">Lightning Fast</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Powered by the Bitcoin Lightning Network. Instant settlements, near-zero fees.</p>
+        </div>
+        <!-- Feature 2 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600 mb-4">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+          </div>
+          <h3 class="font-semibold text-slate-900 mb-2">One Line Embed</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Just copy and paste a script tag. No complex API integrations or backend servers needed.</p>
+        </div>
+        <!-- Feature 3 -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center text-green-600 mb-4">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <h3 class="font-semibold text-slate-900 mb-2">Nostr Native</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Fully compatible with the Nostr protocol. Works with profiles (NIP-57) and events.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo -->
+  <section id="demo" class="py-24 px-6 max-w-5xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-slate-900 mb-4">See it in action</h2>
+      <p class="text-slate-500">Try zapping the profile below. It's real money!</p>
     </div>
 
-    <header class="hero">
-       <h1>Accept Zaps on Your Website</h1>
-      <p class="lead">
-        Add a zap button to your site. One line of code.
-      </p>
-      <p class="sublead">
-        Simple embed. No backend. Works with any Nostr profile or note.
-      </p>
-      <div class="pillrow">
-        <span class="pill">npub</span>
-        <span class="pill">nprofile</span>
-        <span class="pill">note</span>
-        <span class="pill">nevent</span>
-        <span class="pill">naddr</span>
+    <div class="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-xl shadow-slate-200/50 flex flex-col items-center justify-center gap-8">
+      
+      <!-- Profile Card Mockup -->
+      <div class="flex flex-col items-center gap-4">
+        <img src="./logo.png" class="w-20 h-20 rounded-full border-4 border-white shadow-lg" alt="Profile">
+        <div class="text-center">
+          <h3 class="font-bold text-xl text-slate-900">Nostr Buzz</h3>
+          <p class="text-sm text-slate-500">@nostr-buzz</p>
+        </div>
       </div>
 
-      <div class="divider"></div>
-
-      <div class="row">
-        <button class="btn btn-primary" data-title=""
-          data-nzv-id="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp" data-zap-color-mode="true"
-          data-relay-urls="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-          View demo zaps
+      <!-- The Buttons -->
+      <div class="flex flex-wrap justify-center gap-4">
+        <button 
+          class="px-6 py-3 rounded-full bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all shadow-lg hover:-translate-y-0.5 flex items-center gap-2"
+          data-npub="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
+          data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol">
+          <span>⚡️</span> Zap Me
         </button>
-        <a class="pill" href="./docs.html">Read the docs</a>
-        <span class="theme-controls" data-theme-row>
-          <label>
-            Dialog theme
-            <select class="theme-select" data-theme-select>
-              <option value="light" selected>Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-        </span>
+        
+        <button 
+          class="px-6 py-3 rounded-full bg-white text-slate-700 border border-slate-200 font-semibold hover:border-brand-500 hover:text-brand-600 transition-all shadow-sm hover:-translate-y-0.5 flex items-center gap-2"
+          data-nzv-id="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
+          data-zap-color-mode="true"
+          data-relay-urls="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol">
+          <span>👀</span> View Zaps
+        </button>
       </div>
-    </header>
-
-    <div class="section-title">Try it</div>
-    <main class="grid">
-      <section class="card card-wide">
-        <h2>Website owner checklist (recommended)</h2>
-        <p>
-          If your goal is: “I want visitors to zap me on my website”, follow these steps.
-        </p>
-        <ol class="steps">
-          <li>
-            <strong>Prepare your Nostr profile for zaps.</strong>
-            Your profile metadata should include a Lightning address / LNURL (commonly <span class="kbd">lud16</span> or <span class="kbd">lud06</span>).
-            If it’s missing, zaps cannot generate an invoice.
-          </li>
-          <li>
-            <strong>Include the script bundle</strong> (one line). See the “Embed” card below.
-          </li>
-          <li>
-            <strong>Add a Zap button</strong> using <span class="kbd">data-npub</span> (for profiles) or <span class="kbd">data-note-id</span> / <span class="kbd">data-naddr</span> (for content).
-          </li>
-          <li>
-            <strong>Pick relays</strong> (recommended: multiple read+write relays).
-            This demo uses a curated relay list.
-          </li>
-          <li>
-            <strong>Pick a theme</strong> by setting <span class="kbd">data-theme</span> to <span class="kbd">light</span> or <span class="kbd">dark</span>.
-            Use the selector on this page to try both.
-          </li>
-        </ol>
-        <div class="hint">
-          Tip: start with a profile button first. If profile zaps work, note zaps will usually work too.
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Profile demo (Zap + View)</h2>
-        <p>
-          A “Zap” button to pay this profile, plus a “View” button to display recent zaps for the same profile.
-        </p>
-        <div class="row">
-          <button class="btn btn-green" data-npub="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
-            data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-            Zap
-          </button>
-          <button class="btn" data-title=""
-            data-nzv-id="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp" data-zap-color-mode="true"
-            data-relay-urls="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-            View
-          </button>
-          <span class="theme-controls" data-theme-row>
-            <label>
-              Dialog theme
-              <select class="theme-select" data-theme-select>
-                <option value="light" selected>Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-          </span>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Note demo (Zap + View)</h2>
-        <p>
-          Target a note event (nevent) and view the zaps for that exact content.
-        </p>
-        <div class="row">
-          <button class="btn btn-green" data-npub="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
-            data-note-id="nevent1qqs2feju0cx3mu2nm6fdq6s4lpa390v0w22ngsh7efnxe40exz2ylkcc5hm0t"
-            data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-            Zap
-          </button>
-          <button class="btn" data-title="Milad's Post"
-            data-nzv-id="nevent1qqs2feju0cx3mu2nm6fdq6s4lpa390v0w22ngsh7efnxe40exz2ylkcc5hm0t" data-zap-color-mode="true"
-            data-relay-urls="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-            View
-          </button>
-          <span class="theme-controls" data-theme-row>
-            <label>
-              Dialog theme
-              <select class="theme-select" data-theme-select>
-                <option value="light" selected>Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-          </span>
-        </div>
-      </section>
-
-      <section class="card" id="embed">
-        <h2>Embed (1 line)</h2>
-        <p>
-          Add this script tag near the bottom of your HTML (before <span class="kbd">&lt;/body&gt;</span>).
-          That’s it — the library auto-wires buttons by attributes.
-        </p>
-
-        <details>
-          <summary>Copy script tag</summary>
-          <div class="codewrap">
-            <div class="codebar">
-              <button class="copy" type="button" data-copy>Copy</button>
-            </div>
-            <pre><code class="language-html">&lt;script src=&quot;https://zap.nostr.buzz/dist/nostr-zap.js&quot;&gt;&lt;/script&gt;</code></pre>
-          </div>
-        </details>
-      </section>
-
-      <section class="card">
-        <h2>Minimal button snippet</h2>
-        <p>
-          Copy/paste this into your site and replace <span class="kbd">npub1...</span> with your own identifier.
-          You can style the buttons however you want.
-        </p>
-
-        <details>
-          <summary>Show HTML</summary>
-          <div class="codewrap">
-            <div class="codebar">
-              <button class="copy" type="button" data-copy>Copy</button>
-            </div>
-            <pre><code class="language-html">&lt;div style=&quot;display:inline-flex;gap:8px&quot;&gt;
-  &lt;button data-npub=&quot;npub1...&quot;
-    data-relays=&quot;wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol&quot;&gt;
-    Zap
-  &lt;/button&gt;
-  &lt;button data-nzv-id=&quot;npub1...&quot;
-    data-zap-color-mode=&quot;true&quot;
-    data-relay-urls=&quot;wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol&quot;&gt;
-    View
-  &lt;/button&gt;
-&lt;/div&gt;</code></pre>
-          </div>
-        </details>
-
-        <div class="divider"></div>
-
-        <div class="row">
-          <button class="btn btn-green"
-            data-npub="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
-            data-relays="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-            <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor">
-              <path d="m422-232 207-248H469l29-227-185 267h139l-30 208ZM320-80l40-280H160l360-520h80l-40 320h240L400-80h-80Zm151-390Z" />
-            </svg>
-            Sponsor
-          </button>
-          <button class="btn" data-title="" data-nzv-id="npub1tapj48eekk8lzvhupfxg4ugdgthaj97cqahk3wml97g76l20dfqspmpjyp"
-            data-zap-color-mode="true"
-            data-relay-urls="wss://relay.damus.io,wss://relay.primal.net,wss://nos.lol,wss://nostr-pub.wellorder.net,wss://relay.snort.social,wss://relay.angor.io,wss://nostr.wine,wss://eden.nostr.land,wss://nostr.bitcoiner.social,wss://nostr.mom,wss://nostr.land,wss://nostr.oxtr.dev,wss://purplepag.es,wss://offchain.pub,wss://premium.primal.net,wss://relay.mostr.pub,wss://puravida.nostr.land,wss://pyramid.fiatjaf.com,wss://atlas.nostr.land,wss://relay.nostrplebs.com,wss://hist.nostr.land,wss://no.str.cr,wss://bitcoiner.social,wss://relay.bitcoinpark.com,wss://relay.nos.social,wss://nostr.einundzwanzig.space,wss://relay.nostr.com.au,wss://nostr-01.yakihonne.com,wss://relay.noswhere.com,wss://theforest.nostr1.com,wss://yabu.me,wss://wot.nostr.party,wss://nostr-pub.semisol.dev">
-            <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor">
-              <path d="M320-280q17 0 28.5-11.5T360-320q0-17-11.5-28.5T320-360q-17 0-28.5 11.5T280-320q0 17 11.5 28.5T320-280Zm0-160q17 0 28.5-11.5T360-480q0-17-11.5-28.5T320-520q-17 0-28.5 11.5T280-480q0 17 11.5 28.5T320-440Zm0-160q17 0 28.5-11.5T360-640q0-17-11.5-28.5T320-680q-17 0-28.5 11.5T280-640q0 17 11.5 28.5T320-600Zm120 320h240v-80H440v80Zm0-160h240v-80H440v80Zm0-160h240v-80H440v80ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z" />
-            </svg>
-            View Sponsors
-          </button>
-          <span class="theme-controls" data-theme-row>
-            <label>
-              Dialog theme
-              <select class="theme-select" data-theme-select>
-                <option value="light" selected>Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-          </span>
-        </div>
-      </section>
-    </main>
-
-    <div class="divider"></div>
-
-    <footer class="footer">
-      <div>
-        <span>Demo page</span>
-        <span aria-hidden="true"> · </span>
-        <a href="./docs.html">Documentation</a>
+      
+      <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+        <span>Theme:</span>
+        <select class="bg-transparent border-none p-0 font-medium text-slate-600 cursor-pointer focus:ring-0" data-theme-select>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
       </div>
-      <div>
-        <span style="color: var(--muted);">Built bundle:</span>
-        <span style="font-family: var(--mono);">dist/nostr-zap.js</span>
-      </div>
-    </footer>
-  </div>
+    </div>
+  </section>
 
+  <!-- Embed Code -->
+  <section id="embed" class="py-20 bg-slate-900 text-white">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
+        <div>
+          <h2 class="text-3xl font-bold mb-2">Ready to integrate?</h2>
+          <p class="text-slate-400">Copy the snippet below and paste it into your HTML.</p>
+        </div>
+        <a href="./docs.html" class="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 font-medium transition">
+          Read full documentation <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      <!-- Code Block -->
+      <div class="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-2xl relative group">
+        <button class="absolute top-4 right-4 p-2 rounded-lg bg-slate-700 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-600 hover:text-white" data-copy>
+          <span class="text-xs font-medium">Copy</span>
+        </button>
+        <pre class="font-mono text-sm text-slate-300 overflow-x-auto"><code>&lt;!-- 1. Include the script --&gt;
+&lt;script src="https://zap.nostr.buzz/dist/nostr-zap.js"&gt;&lt;/script&gt;
+
+&lt;!-- 2. Add the button --&gt;
+&lt;button 
+  data-npub="npub1..." 
+  data-relays="wss://relay.damus.io,wss://nos.lol"&gt;
+  Zap Me ⚡️
+&lt;/button&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 border-t border-slate-100 bg-white">
+    <div class="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="flex items-center gap-2 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition">
+        <img src="./logo.png" class="w-6 h-6 rounded" alt="Logo">
+        <span class="font-semibold text-sm">nostr-zap</span>
+      </div>
+      <div class="text-sm text-slate-500">
+        Open source software. Built for the <a href="https://nostr.com" target="_blank" class="underline hover:text-slate-900">Nostr</a> community.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
   <script src="./dist/nostr-zap.js"></script>
   <script>
-    // Copy helpers for all blocks that opt-in via [data-copy]
+    // Copy functionality
     document.querySelectorAll("[data-copy]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const root = btn.closest("details") || btn.parentElement;
-        const code = root?.querySelector("code");
-        const text = code?.innerText || "";
-
-        if (!text) return;
-
-        try {
-          await navigator.clipboard.writeText(text);
-          const prev = btn.textContent;
-          btn.textContent = "Copied";
-          setTimeout(() => (btn.textContent = prev), 1400);
-        } catch (_e) {
-          // ignore clipboard failures
-        }
+        const code = btn.parentElement.querySelector("code").innerText;
+        await navigator.clipboard.writeText(code);
+        const originalText = btn.innerText;
+        btn.querySelector("span").innerText = "Copied!";
+        setTimeout(() => btn.querySelector("span").innerText = "Copy", 2000);
       });
     });
 
-    // Theme helpers: sets data-theme on buttons next to each theme selector.
-    const applyThemeForRow = (selectEl) => {
-      const value = (selectEl.value || "").toLowerCase();
-      const row = selectEl.closest(".row") || selectEl.closest("[data-theme-row]")?.parentElement;
-      const scope = row || document;
-
-      scope.querySelectorAll("button[data-npub], button[data-nzv-id]").forEach((btn) => {
-        // Only touch buttons that are visually in the same row container.
-        if (row && !row.contains(btn)) return;
-        btn.setAttribute("data-theme", value === "dark" ? "dark" : "light");
-      });
-    };
-
-    document.querySelectorAll("[data-theme-select]").forEach((selectEl) => {
-      applyThemeForRow(selectEl);
-      selectEl.addEventListener("change", () => applyThemeForRow(selectEl));
+    // Theme switcher for demo
+    const demoSection = document.getElementById('demo');
+    const themeSelect = document.querySelector('[data-theme-select]');
+    
+    themeSelect.addEventListener('change', (e) => {
+      const theme = e.target.value;
+      const buttons = demoSection.querySelectorAll('button[data-npub], button[data-nzv-id]');
+      buttons.forEach(btn => btn.setAttribute('data-theme', theme));
     });
   </script>
 </body>
-
 </html>
