@@ -37,8 +37,17 @@ jobs:
         run: |
           rm -rf site
           mkdir -p site
-          cp -f index.html site/index.html
+          # Static pages
+          cp -f *.html site/
+
+          # Bundles
           cp -r dist site/dist
+
+          # Static assets (favicons, images)
+          cp -r assets site/assets
+
+          # Logo referenced by pages as ./logo.png
+          if [ -f logo.png ]; then cp -f logo.png site/logo.png; fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
