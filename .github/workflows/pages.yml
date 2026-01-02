@@ -50,10 +50,6 @@ jobs:
           # Static assets (favicons, images)
           cp -r assets site/assets
 
-          # Root logos referenced by pages
-          if [ -f logo.png ]; then cp -f logo.png site/logo.png; fi
-          if [ -f logo.svg ]; then cp -f logo.svg site/logo.svg; fi
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
